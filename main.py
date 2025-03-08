@@ -16,9 +16,6 @@ API_KEY = os.getenv("GEMINI_API_KEY")
 if not API_KEY:
     raise ValueError("GEMINI_API_KEY is not set. Please add it to your .env file.")
 
-# Global variable to store LLM instance
-llm_instance = None
-
 # Function to Load PDF and Extract Text
 def load_pdf(pdf_path):
     loader = PyPDFLoader(pdf_path)
@@ -39,8 +36,6 @@ def create_faiss_vector_store(chunks):
 
 # Function to Create and Run RAG Pipeline
 def rag_pipeline(pdf_path, query):
-    global llm_instance # Use global LLM instance for cleanup
-
     # Load and Split PDF
     documents = load_pdf(pdf_path)
     chunks = split_text(documents)
@@ -52,7 +47,7 @@ def rag_pipeline(pdf_path, query):
     retriever = vector_store.as_retriever()
 
     # Define LLM (Google Gemini)
-    llm_instance = GoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=API_KEY)
+    llm = GoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=API_KEY)
 
     # Define Custom Prompt
     prompt_template = PromptTemplate(
@@ -62,7 +57,7 @@ def rag_pipeline(pdf_path, query):
 
     # Create RAG Chain
     rag_chain = RetrievalQA.from_chain_type(
-        llm=llm_instance,
+        llm=llm,
         retriever=retriever,
         return_source_documents=True
     )
@@ -70,21 +65,6 @@ def rag_pipeline(pdf_path, query):
     # Get Response
     response = rag_chain.invoke({"query": query})
     return response["result"]
-
-# Ensure LLM is properly cleaned up before the script exits
-def cleanup():
-    global llm_instance
-    if llm_instance:
-        print("Shutting down LLM service...")
-        try:
-            # If `llm_instance` has a close method, call it
-            if hasattr(llm_instance, "close"):
-                llm_instance.close()
-            llm_instance = None  # Release reference
-        except Exception as e:
-            print(f"Error during cleanup: {e}")  
-
-atexit.register(cleanup)   
 
 # Example Usage
 if __name__ == "__main__":
