@@ -7,7 +7,7 @@ from langchain.chains import RetrievalQA
 from langchain_core.prompts import PromptTemplate
 
 # Set API Key Directly (Replace with your actual key)
-os.environ["GOOGLE_API_KEY"] = "AIzaSyDDS4ogkDCwHBkNo8HR8V2jfJpDkZEn_o0"
+os.environ["GOOGLE_API_KEY"] = "YOUR_GEMINI_API_KEY"
 
 # Function to Load PDF and Extract Text
 def load_pdf(pdf_path):
