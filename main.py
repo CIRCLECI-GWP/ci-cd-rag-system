@@ -1,4 +1,5 @@
 import os
+from dotenv import load_dotenv
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
@@ -6,8 +7,8 @@ from langchain_google_genai import GoogleGenerativeAIEmbeddings, GoogleGenerativ
 from langchain.chains import RetrievalQA
 from langchain_core.prompts import PromptTemplate
 
-# Set API Key Directly (Replace with your actual key)
-os.environ["GOOGLE_API_KEY"] = "YOUR_GEMINI_API_KEY"
+# Load environment variables from the .env file
+load_dotenv()
 
 # Function to Load PDF and Extract Text
 def load_pdf(pdf_path):
@@ -40,7 +41,7 @@ def rag_pipeline(pdf_path, query):
     retriever = vector_store.as_retriever()
 
     # Define LLM (Google Gemini)
-    llm = GoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=os.environ["GOOGLE_API_KEY"])
+    llm = GoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=os.getenv["GEMINI_API_KEY"])
 
     # Define Custom Prompt
     prompt_template = PromptTemplate(
