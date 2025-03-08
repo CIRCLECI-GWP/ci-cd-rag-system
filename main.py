@@ -1,4 +1,5 @@
 import os
+import atexit
 from dotenv import load_dotenv
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -9,6 +10,14 @@ from langchain_core.prompts import PromptTemplate
 
 # Load environment variables from the .env file
 load_dotenv()
+
+# Retrieve API Key once at the top
+API_KEY = os.getenv("GEMINI_API_KEY")
+if not API_KEY:
+    raise ValueError("GEMINI_API_KEY is not set. Please add it to your .env file.")
+
+# Global variable to store LLM instance
+llm_instance = None
 
 # Function to Load PDF and Extract Text
 def load_pdf(pdf_path):
@@ -24,12 +33,14 @@ def split_text(documents, chunk_size=1000, chunk_overlap=100):
 
 # Function to Create FAISS Vector Store
 def create_faiss_vector_store(chunks):
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001", google_api_key=API_KEY)
     vector_store = FAISS.from_documents(chunks, embeddings)
     return vector_store
 
 # Function to Create and Run RAG Pipeline
 def rag_pipeline(pdf_path, query):
+    global llm_instance # Use global LLM instance for cleanup
+
     # Load and Split PDF
     documents = load_pdf(pdf_path)
     chunks = split_text(documents)
@@ -41,7 +52,7 @@ def rag_pipeline(pdf_path, query):
     retriever = vector_store.as_retriever()
 
     # Define LLM (Google Gemini)
-    llm = GoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=os.getenv["GEMINI_API_KEY"])
+    llm_instance = GoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=API_KEY)
 
     # Define Custom Prompt
     prompt_template = PromptTemplate(
@@ -51,18 +62,33 @@ def rag_pipeline(pdf_path, query):
 
     # Create RAG Chain
     rag_chain = RetrievalQA.from_chain_type(
-        llm=llm,
+        llm=llm_instance,
         retriever=retriever,
         return_source_documents=True
     )
 
     # Get Response
-    response = rag_chain({"query": query})
+    response = rag_chain.invoke({"query": query})
     return response["result"]
 
-# Example Usage
-pdf_file = "https://services.google.com/fh/files/misc/evaluation_framework.pdf"
-question = "What is the main topic of the document?"
-response = rag_pipeline(pdf_file, question)
+# Ensure LLM is properly cleaned up before the script exits
+def cleanup():
+    global llm_instance
+    if llm_instance:
+        print("Shutting down LLM service...")
+        try:
+            # If `llm_instance` has a close method, call it
+            if hasattr(llm_instance, "close"):
+                llm_instance.close()
+            llm_instance = None  # Release reference
+        except Exception as e:
+            print(f"Error during cleanup: {e}")  
 
-print("RAG Response:", response)
+atexit.register(cleanup)   
+
+# Example Usage
+if __name__ == "__main__":
+    pdf_file = "https://services.google.com/fh/files/misc/evaluation_framework.pdf"
+    question = "What is the main topic of the document?"
+    response = rag_pipeline(pdf_file, question)
+    print("RAG Response:", response) 
