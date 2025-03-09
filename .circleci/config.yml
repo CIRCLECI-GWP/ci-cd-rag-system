@@ -1,0 +1,36 @@
+version: 2.1
+
+jobs:
+  build:
+    working_directory: ~/circleci-python
+    docker:
+      - image: cimg/python:3.13.2
+    steps:
+      - checkout
+      - run: python3 main.py
+  test:
+    working_directory: ~/circleci-python
+    docker:
+      - image: cimg/python:3.13.2
+    steps:
+      - checkout
+      - run: python3 test_main.py
+  deploy:
+    docker:
+      - image: cimg/python:3.13.2
+    steps:
+      - run: echo "Deploying to production"
+
+workflows:
+  build_and_test:
+    jobs:
+      - build
+      - test:
+          requires:
+            - build
+      - deploy:
+          requires:
+            - test
+          filters:
+            branches:
+              only: main

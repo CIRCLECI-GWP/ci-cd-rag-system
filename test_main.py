@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 from langchain.schema import Document
 from langchain_core.retrievers import BaseRetriever
 import main 
@@ -25,7 +25,6 @@ class TestRAGPipeline(unittest.TestCase):
         # Mock FAISS Vector Store and Retriever
         mock_retriever = MockRetriever()
         mock_create_faiss.return_value.as_retriever.return_value = mock_retriever
-        # MagicMock(as_retriever=MagicMock(return_value=mock_retriever))
 
         # Run the pipeline with a mock query
         response = main.rag_pipeline("https://services.google.com/fh/files/misc/evaluation_framework.pdf", "What is the main topic?")
